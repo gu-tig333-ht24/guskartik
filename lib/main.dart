@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(TodoApp());
+  runApp(const TodoApp());
 }
 
 class TodoApp extends StatelessWidget {
@@ -15,13 +15,38 @@ class TodoApp extends StatelessWidget {
         primarySwatch: Colors.grey,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: TodoListScreen(),
+      home: const TodoListScreen(),
     );
   }
 }
 
-class TodoListScreen extends StatelessWidget {
+class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
+
+  @override
+  TodoListScreenState createState() => TodoListScreenState(); 
+}
+
+class TodoListScreenState extends State<TodoListScreen> {  
+  final List<Map<String, dynamic>> todos = [];
+
+  void addTodoItem(String task) {
+    setState(() {
+      todos.add({'task': task, 'isChecked': false});
+    });
+  }
+
+  void toggleTodoItem(int index) {
+    setState(() {
+      todos[index]['isChecked'] = !todos[index]['isChecked'];
+    });
+  }
+
+  void removeTodoItem(int index) {
+    setState(() {
+      todos.removeAt(index);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,57 +62,58 @@ class TodoListScreen extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          children: [
-            _buildTodoItem('Write a book', false),
-            _buildTodoItem('Do homework', false),
-            _buildTodoItem('Tidy room', true),
-            _buildTodoItem('Watch TV', false),
-            _buildTodoItem('Nap', false),
-            _buildTodoItem('Shop groceries', false),
-            _buildTodoItem('Have fun', false),
-            _buildTodoItem('Meditate', false),
-          ],
+        child: ListView.builder(
+          itemCount: todos.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              leading: Checkbox(
+                value: todos[index]['isChecked'],
+                onChanged: (bool? value) {
+                  toggleTodoItem(index);
+                },
+              ),
+              title: Text(
+                todos[index]['task'],
+                style: TextStyle(
+                  decoration: todos[index]['isChecked']
+                      ? TextDecoration.lineThrough
+                      : null,
+                ),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  removeTodoItem(index);
+                },
+              ),
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddTodoScreen()),
+            MaterialPageRoute(
+                builder: (context) => AddTodoScreen(addTodo: addTodoItem)),
           );
         },
         backgroundColor: Colors.grey,
-        child: Icon(Icons.add),  
-      ),
-    );
-  }
-
-  Widget _buildTodoItem(String taskName, bool isChecked) {
-    return ListTile(
-      leading: Checkbox(
-        value: isChecked,
-        onChanged: (bool? value) {},
-      ),
-      title: Text(
-        taskName,
-        style: TextStyle(
-          decoration: isChecked ? TextDecoration.lineThrough : null,
-        ),
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.close),
-        onPressed: () {},
+        child: const Icon(Icons.add),
       ),
     );
   }
 }
 
 class AddTodoScreen extends StatelessWidget {
-  const AddTodoScreen({super.key});
+  final Function(String) addTodo;
+
+  const AddTodoScreen({super.key, required this.addTodo});
 
   @override
   Widget build(BuildContext context) {
+    final TextEditingController controller = TextEditingController();  
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -104,15 +130,21 @@ class AddTodoScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: controller,  
+              decoration: const InputDecoration(
                 hintText: 'What are you going to do?',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  addTodo(controller.text);
+                  Navigator.pop(context);
+                }
+              },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.black,
               ),
